@@ -73,7 +73,7 @@ foreach ($lib_obj in $lib_objs) {
 }
 
 $extensions | %{
-    echo "Installing extension $_...";
+    Write-Host "Installing extension $_...";
     $cmd = "$HOME\AppData\Local\Programs\Microsoft\ VS\ Code\bin\code.exe --install-extension $_"; 
-    Start-Job -Name $_ -ScriptBlock { start $cmd; }
+    Start-Job -Name $_ -ScriptBlock { Start-Process $cmd; }
 };
