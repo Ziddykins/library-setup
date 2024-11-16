@@ -1,3 +1,7 @@
+# SET ME #
+$git_user = "SET_ME";
+$git_email = "SET@ME";
+
 $default_cwd = "$HOME\Downloads";
 
 class LibraryObj {
@@ -28,19 +32,11 @@ $extensions = @(
 $lib_objs = @(
     [LibraryObj]@{
         Uri = "https://github.com/PowerShell/PowerShell/releases/download/v7.5.0-rc.1/PowerShell-7.5.0-rc.1-win-x64.zip";
-        ExtractFolder = "$default_cwd/ps7";
+        ExtractFolder = "$default_cwd\ps7";
         Archive = 1;
         Flags = "";
-        Exe = "";
+        Exe = "PowerShell-7.5.0-rc.1-win-x64.zip";
         DownloadFolder = $default_cwd;
-    },
-    
-    [LibraryObj]@{
-        Uri = "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/PortableGit-2.47.0.2-64-bit.7z.exe";
-        Flags = "/VERYSILENT /NORESTART /SUPPRESSMSGBOXES /NOCANCEL /NORESTART";
-        Archive = 0;        
-        DownloadFolder = $default_cwd;
-        Exe = "PortableGit-2.47.0.2-64-bit.7z.exe";
     },
     
     [LibraryObj]@{
@@ -57,14 +53,18 @@ foreach ($lib_obj in $lib_objs) {
 
     if (![System.IO.File]::Exists($full_path)) {
         Write-Host "Downloading $full_path"
-        Invoke-WebRequest -Uri $lib_obj.Uri -OutFile $lib_obj.Exe
+        Invoke-WebRequest -Uri $lib_obj.Uri -OutFile $full_path
     } else {
         Write-Host "File $($lib_obj.Exe) already downloaded!"
     }
     
     if ($lib_obj.Archive) {
-        Write-Host "Archive found, expanding to $($lib_obj.ExtractFolder)";
-        Expand-Archive -Path $default_cwd
+        if (![System.IO.Directory]::Exists($lib_obj.ExtractFolder)) {
+            Write-Host "Archive found, expanding to $($lib_obj.ExtractFolder)";
+            Expand-Archive -Path $full_path -DestinationPath $lib_obj.ExtractFolder -Force;
+        } else {
+            Write-Host "Archive has already been extracted";
+        }
     } else {
         $cmd = "$($lib_obj.DownloadFolder)\$($lib_obj.Exe) $($lib_obj.Flags)"
         Write-Host "Executing $($lib_obj.Exe) with $($cmd)";
@@ -72,8 +72,17 @@ foreach ($lib_obj in $lib_objs) {
     }
 }
 
+if (!(winget list | findstr Git.Git)) {
+    Write-Host "Installing Git through winget...";
+    winget install Git.Git --force --accept-source-agreements --accept-package-agreements --scope user --silent;
+    git config --global user.name $git_user
+    git config --global user.email $git_email
+} else {
+    Write-Host "Git found to be installed"
+}
+
 $extensions | %{
     Write-Host "Installing extension $_...";
-    $cmd = "$HOME\AppData\Local\Programs\Microsoft\ VS\ Code\bin\code.exe --install-extension $_"; 
-    Start-Job -Name $_ -ScriptBlock { Start-Process $cmd; }
+    $code_exe = "$($env:LOCALAPPDATA)\Programs\Microsoft VS Code\bin\code"
+    Start-Process $code_exe -ArgumentList "--install-extension $_" -WindowStyle Hidden
 };
